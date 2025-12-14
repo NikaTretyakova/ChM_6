@@ -16,7 +16,7 @@ using Signal = vector<Complex>;
 #define M_PI 3.14159265358979323846
 #endif
 
-// 1. Реализация DFT и IDFT
+// Реализация DFT и IDFT
 Signal dft(const Signal& x) {
     int N = static_cast<int>(x.size());
     Signal X(N);
@@ -181,7 +181,6 @@ void saveToFile(const string& filename, const Signal& signal1, const Signal& sig
     file.close();
 }
 
-// Основная функция
 int main() {
     setlocale(0, "");
 
@@ -262,4 +261,5 @@ int main() {
     saveToFile(file2, z2);
 
     return 0;
+
 }
