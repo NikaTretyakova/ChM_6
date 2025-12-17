@@ -1,4 +1,4 @@
-﻿#include <iostream>
+#include <iostream>
 #include <vector>
 #include <complex>
 #include <cmath>
@@ -44,26 +44,48 @@ Signal idft(const Signal& X) {
     return x;
 }
 
-// Реализация FFT и IFFT
+// Вспомогательная рекурсивная функция FFT
+void computeFFTRecursive(Signal& x, int start, int step, int N) {
+    if (N == 1) return;
+
+    int halfN = N / 2;
+
+    computeFFTRecursive(x, start, step * 2, halfN);
+    computeFFTRecursive(x, start + step, step * 2, halfN);
+
+    double angleIncrement = -2.0 * M_PI / N;
+    Complex rotationStep(cos(angleIncrement), sin(angleIncrement));
+    Complex currentRotation(1.0, 0.0);
+
+    for (int k = 0; k < halfN; ++k) {
+        int evenIndex = start + step * (2 * k);
+        int oddIndex = start + step * (2 * k + 1);
+
+        Complex evenValue = x[evenIndex];
+        Complex oddValue = x[oddIndex];
+
+        Complex rotatedOdd = currentRotation * oddValue;
+
+        x[evenIndex] = evenValue + rotatedOdd;
+        x[oddIndex] = evenValue - rotatedOdd;
+
+        currentRotation *= rotationStep;
+    }
+}
+
+// Реализация FFT 
 Signal fft(const Signal& x) {
     int N = static_cast<int>(x.size());
     if (N <= 1) return x;
 
-    Signal even, odd;
-    for (int i = 0; i < N; i += 2) even.push_back(x[i]);
-    for (int i = 1; i < N; i += 2) odd.push_back(x[i]);
-
-    Signal evenTransformed = fft(even);
-    Signal oddTransformed = fft(odd);
-
-    Signal X(N);
-    for (int k = 0; k < N / 2; ++k) {
-        Complex w = exp(Complex(0, -2.0 * M_PI * k / N));
-        Complex t = w * oddTransformed[k];
-        X[k] = evenTransformed[k] + t;
-        X[k + N / 2] = evenTransformed[k] - t;
+    if ((N & (N - 1)) != 0) {
+        cerr << "Размер сигнала должен быть степенью двойки для FFT" << endl;
+        return Signal();
     }
-    return X;
+
+    Signal result = x;  
+    computeFFTRecursive(result, 0, 1, N);
+    return result;
 }
 
 Signal ifft(const Signal& X) {
@@ -120,8 +142,8 @@ void printSpectrumTable(const Signal& z_original, const Signal& Z, const string&
         << setw(12) << "Im(Z)^" << " | "
         << setw(15) << "Амплитуда" << " | "
         << setw(12) << "Фаза" << endl;
- 
-    cout << scientific << setprecision(6);  
+
+    cout << scientific << setprecision(6);
 
     for (int m = 0; m < N; ++m) {
         double amp = abs(Z[m]);
@@ -136,7 +158,7 @@ void printSpectrumTable(const Signal& z_original, const Signal& Z, const string&
                 << setw(12) << phase << endl;
         }
     }
-    cout << defaultfloat; 
+    cout << defaultfloat;
 }
 
 // Обнуление высокочастотных шумовых компонентов
@@ -184,18 +206,18 @@ void saveToFile(const string& filename, const Signal& signal1, const Signal& sig
 int main() {
     setlocale(0, "");
 
-    int n = 10;                     
-    int N = static_cast<int>(pow(2, n));  
+    int n = 10;
+    int N = static_cast<int>(pow(2, n));
 
-    double A = 2.15;      
-    double omega1 = 2.0;  
-    double phi = M_PI / 4;  
-    double B = 0.18;      
-    double omega2 = 185.0; 
+    double A = 2.15;
+    double omega1 = 2.0;
+    double phi = M_PI / 4;
+    double B = 0.18;
+    double omega2 = 185.0;
 
     // Путь для сохранения файлов 
     string desktopPath = "C:\\Users\\Veronika\\Desktop\\График\\";
-    _mkdir(desktopPath.c_str());  
+    _mkdir(desktopPath.c_str());
 
     // Генерация сигнала
     Signal z = generateNoisySignal(N, A, omega1, phi, B, omega2);
@@ -235,6 +257,7 @@ int main() {
     }
     cout << "Максимальная разница между DFT и FFT: " << max_diff << endl;
     if (max_diff < 1e-10) {
+        cout << "DFT и FFT дают идентичные результаты" << endl;
     }
 
     // Обнуление конкретных шумовых компонентов
@@ -261,5 +284,4 @@ int main() {
     saveToFile(file2, z2);
 
     return 0;
-
 }
